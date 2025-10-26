@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>กราฟข้อมูลแร่ธาตุและความชื้นของต้นกล้า</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen p-6">
+  <h2 class="text-2xl font-bold text-center mb-6 text-blue-800">
+    กราฟข้อมูลแร่ธาตุและความชื้นของแปลงต้นกล้า
+  </h2>
+
+  <div class="absolute right-0 top-0 flex space-x-2">
+    <button id="userBtn" class="bg-gray-200 text-gray-800 px-4 py-2 rounded-lg cursor-default">
+      ผู้ใช้:
+    </button>
+    <button id="logoutBtn" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition">
+      ออกจากระบบ
+    </button>
+  </div>
+
+  <form id="dataForm" class="max-w-md mx-auto bg-white p-6 rounded-2xl shadow-md mb-8">
+    <div class="mb-4">
+      <label for="mineral" class="block font-medium text-gray-700 mb-2">ค่าแร่ธาตุ (Mineral)</label>
+      <input type="number" id="mineral" step="0.01" class="w-full border rounded-lg p-2">
+    </div>
+
+    <div class="mb-4">
+      <label for="moisture" class="block font-medium text-gray-700 mb-2">ค่าความชื้น (Moisture)</label>
+      <input type="number" id="moisture" step="0.01" class="w-full border rounded-lg p-2">
+    </div>
+
+    <div class="mb-4">
+      <label for="nMineral" class="block font-medium text-gray-700 mb-2">จำนวนครั้งที่เติมแร่ธาตุต่อวัน</label>
+      <input type="number" id="nMineral" min="0" class="w-full border rounded-lg p-2">
+    </div>
+
+    <div class="mb-4">
+      <label for="nMoisture" class="block font-medium text-gray-700 mb-2">จำนวนครั้งที่รดน้ำต่อวัน</label>
+      <input type="number" id="nMoisture" min="0" class="w-full border rounded-lg p-2">
+    </div>
+
+    <div class="flex justify-between gap-3">
+      <button type="submit"
+        class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition">
+        Confirm
+      </button>
+      <button type="button" id="cancelBtn"
+        class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition">
+        Cancel
+      </button>
+    </div>
+  </form>
+
+  <div class="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+    <div class="bg-white p-6 rounded-2xl shadow-md">
+      <canvas id="lineChart"></canvas>
+    </div>
+    <div class="bg-white p-6 rounded-2xl shadow-md">
+      <canvas id="barChart"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const currentUser = localStorage.getItem('currentUser');
+    if (!currentUser) {
+        alert('กรุณาเข้าสู่ระบบก่อน');
+        window.location.href = 'login.html';
+    }
+
+    document.getElementById('userBtn').textContent = "ผู้ใช้: " + currentUser;
+
+    let userData = JSON.parse(localStorage.getItem(currentUser)) || {};
+    if (!userData.graph) {
+        userData.graph = { labels: [], minerals: [], moistures: [], nMineral: [], nMoisture: [] };
+    }
+
+    const lineCtx = document.getElementById('lineChart').getContext('2d');
+    const lineData = {
+      labels: [...userData.graph.labels],
+      datasets: [
+        { label: 'ค่าแร่ธาตุ (Mineral)', data: [...userData.graph.minerals], borderColor: 'blue', borderWidth: 2, fill: false },
+        { label: 'ค่าความชื้น (Moisture)', data: [...userData.graph.moistures], borderColor: 'green', borderWidth: 2, fill: false }
+      ]
+    };
+    const lineChart = new Chart(lineCtx, { type: 'line', data: lineData, options: { responsive: true } });
+
+    const barCtx = document.getElementById('barChart').getContext('2d');
+    const barData = {
+      labels: [...userData.graph.labels],
+      datasets: [
+        { label: 'จำนวนครั้งเติมแร่ธาตุต่อวัน', data: [...userData.graph.nMineral], backgroundColor: 'orange' },
+        { label: 'จำนวนครั้งรดน้ำต่อวัน', data: [...userData.graph.nMoisture], backgroundColor: 'purple' }
+      ]
+    };
+    const barChart = new Chart(barCtx, { type: 'bar', data: barData, options: { responsive: true } });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        localStorage.removeItem('currentUser');
+        window.location.href = 'login.html';
+    });
+
+    document.getElementById('dataForm').addEventListener('submit', function (event) {
+  event.preventDefault();
+
+  const mineral = document.getElementById('mineral').value;
+  const moisture = document.getElementById('moisture').value;
+  const nMineral = document.getElementById('nMineral').value;
+  const nMoisture = document.getElementById('nMoisture').value;
+
+  if (!mineral && !moisture && !nMineral && !nMoisture) return;
+
+  const today = new Date().toLocaleDateString('th-TH');
+  const index = lineData.labels.indexOf(today);
+
+  if (index !== -1) {
+    if (mineral) lineData.datasets[0].data[index] = parseFloat(mineral);
+    if (moisture) lineData.datasets[1].data[index] = parseFloat(moisture);
+    if (nMineral) barData.datasets[0].data[index] = parseInt(nMineral);
+    if (nMoisture) barData.datasets[1].data[index] = parseInt(nMoisture);
+  } else {
+    let added = false;
+    if (mineral || moisture || nMineral || nMoisture) {
+      lineData.labels.push(today);
+      lineData.datasets[0].data.push(mineral ? parseFloat(mineral) : undefined);
+      lineData.datasets[1].data.push(moisture ? parseFloat(moisture) : undefined);
+      barData.datasets[0].data.push(nMineral ? parseInt(nMineral) : undefined);
+      barData.datasets[1].data.push(nMoisture ? parseInt(nMoisture) : undefined);
+    }
+  }
+
+  lineChart.update();
+  barChart.update();
+
+  userData.graph.labels = [...lineData.labels];
+  userData.graph.minerals = [...lineData.datasets[0].data];
+  userData.graph.moistures = [...lineData.datasets[1].data];
+  userData.graph.nMineral = [...barData.datasets[0].data];
+  userData.graph.nMoisture = [...barData.datasets[1].data];
+  localStorage.setItem(currentUser, JSON.stringify(userData));
+
+  document.querySelectorAll('#dataForm input').forEach(i => i.value = "");
+});
+
+  document.getElementById('cancelBtn').addEventListener('click', function () {
+  document.querySelectorAll('#dataForm input').forEach(i => i.value = "");
+});
+</script>
+</body>
+</html>
