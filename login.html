@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login (Username or Email)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background-color: #f4f4f4;
+      margin: 0;
+    }
+    .login-container {
+      background-color: #fff;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      width: 380px;
+      transition: 0.3s;
+    }
+    .login-container:hover { transform: scale(1.02); }
+    .login-container h2 { text-align: center; margin-bottom: 28px; color: #333; font-size: 26px; }
+    .form-group { margin-bottom: 22px; }
+    .form-group label { display: block; margin-bottom: 8px; color: #555; font-size: 16px; }
+    .form-group input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; box-sizing: border-box; }
+    .form-group button { width: 100%; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 18px; font-weight: bold; }
+    .register-link { text-align: center; margin-top: 18px; font-size: 16px; }
+    .register-link a { color: #007bff; text-decoration: none; font-weight: bold; }
+    .register-link a:hover { text-decoration: underline; }
+  </style>
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+    const supabase = createClient("https://jwjzrzrzcoizxikndkbn.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3anpyenJ6Y29penhpa25ka2JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0OTE4NzMsImV4cCI6MjA3NzA2Nzg3M30.mW3EBI14n5zolnwfxr0EFFq42tGBg5hAij7GhDWwxMk");
+
+    async function resolveEmail(identifier) {
+      // If input looks like an email, return it directly
+      if (identifier.includes('@')) return identifier.trim();
+
+      // Else treat it as username → lookup email via RPC for privacy
+      const { data, error } = await supabase.rpc('get_email_for_username', { u: identifier.trim() });
+      if (error) throw new Error(error.message);
+      if (!data) throw new Error('ไม่พบบัญชีผู้ใช้ตาม username นี้');
+      return data; // email string
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const form = document.getElementById('loginForm');
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const idOrEmail = document.getElementById('idoremail').value.trim();
+        const password = document.getElementById('password').value.trim();
+        try {
+          const email = await resolveEmail(idOrEmail);
+          const { error } = await supabase.auth.signInWithPassword({ email, password });
+          if (error) throw new Error(error.message);
+          alert('เข้าสู่ระบบสำเร็จ');
+          window.location.href = 'index.html';
+        } catch(err) {
+          alert('เข้าสู่ระบบไม่สำเร็จ: ' + err.message);
+        }
+      });
+    });
+  </script>
+</head>
+<body>
+  <div class="login-container">
+    <h2>Login</h2>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="idoremail">Username หรือ Email:</label>
+        <input type="text" id="idoremail" required>
+      </div>
+      <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password" required>
+      </div>
+      <div class="form-group">
+        <button type="submit">Log In</button>
+      </div>
+    </form>
+    <div class="register-link">
+      <a href="register.html">ยังไม่มีบัญชี? สมัครสมาชิก</a>
+    </div>
+  </div>
+</body>
+</html>
