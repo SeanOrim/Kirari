@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <title>หน้าเลือกการทำงาน</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+  <script type="module">
+    import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+    const supabase = createClient("https://jwjzrzrzcoizxikndkbn.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp3anpyenJ6Y29penhpa25ka2JuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE0OTE4NzMsImV4cCI6MjA3NzA2Nzg3M30.mW3EBI14n5zolnwfxr0EFFq42tGBg5hAij7GhDWwxMk");
+    async function init() {
+      const { data: { session } } = await supabase.auth.getSession();
+      const loginBtn = document.getElementById('loginBtn');
+      const logoutBtn = document.getElementById('logoutBtn');
+      const userTag = document.getElementById('userTag');
+
+      if (session?.user) {
+        userTag.textContent = "ผู้ใช้: " + (session.user.email || session.user.id);
+        loginBtn.classList.add('hidden');
+        logoutBtn.classList.remove('hidden');
+      } else {
+        userTag.textContent = "ยังไม่ได้เข้าสู่ระบบ";
+        loginBtn.classList.remove('hidden');
+        logoutBtn.classList.add('hidden');
+      }
+
+      document.getElementById('goGraph').addEventListener('click', (e) => {
+        if (!session?.user) {
+          e.preventDefault();
+          alert("กรุณาเข้าสู่ระบบก่อน");
+          window.location.href = 'login.html';
+        }
+      });
+
+      logoutBtn.addEventListener('click', async () => {
+        await supabase.auth.signOut();
+        location.reload();
+      });
+    }
+    init();
+  </script>
+</head>
+<body class="bg-blue-50 flex flex-col items-center justify-center h-screen">
+  <div class="absolute right-0 top-0 m-4 flex items-center gap-2">
+    <span id="userTag" class="text-sm text-gray-700">กำลังตรวจสอบ...</span>
+    <a id="loginBtn" href="login.html" class="bg-green-600 text-white px-3 py-1 rounded-lg hover:bg-green-700">Login</a>
+    <button id="logoutBtn" class="bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700 hidden">Logout</button>
+  </div>
+
+  <h1 class="text-3xl font-bold mb-8 text-blue-800">ระบบบันทึกและแสดงผลข้อมูลแร่ธาตุและความชื้น</h1>
+
+  <div class="space-x-4 flex">
+    <a id="goGraph" href="graph.html" 
+       class="bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition duration-200 inline-block text-center">
+      เพิ่มและดูกราฟข้อมูล
+    </a>
+
+    <button 
+      class="bg-gray-400 text-white px-6 py-3 rounded-xl cursor-not-allowed inline-block text-center">
+      ฟังก์ชันนี้กำลังพัฒนา...
+    </button>
+  </div>
+</body>
+</html>
